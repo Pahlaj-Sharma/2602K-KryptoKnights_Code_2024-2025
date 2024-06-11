@@ -4,7 +4,7 @@
     Module:       main.py                                                      
  	Author:       Pahlaj Sharma                                                
  	Created:      4/3/2024, 4:17:56 PM                                         
- 	Description:  2602X Phoneix Competition Code                               
+ 	Description:  2602K Kronos Competition Code                               
                                                                               
  ---------------------------------------------------------------------------- '''
 
@@ -104,32 +104,32 @@ class DriveTrainControl:
         integral = trackertotalvalue = 0
         mmforward = distance * 25.4
         lastposytracker = func.avg(YTracker1.position(), YTracker2.position())
-        lastrotationgyro = gyro.rotation()
+        lastimupos = gyro.rotation() if calibrated else XTracker.position() * 0.443
         error = 6
         while not abs(error) < 5:
             trackertotalvalue += func.avg(YTracker1.position(), YTracker2.position())
-            curr_heading = gyro.rotation() - lastrotationgyro
+            curr_heading = gyro.rotation() - lastimupos
             error = mmforward - (trackertotalvalue - lastposytracker)
             integral += error
             derivative = error - preverror
             preverror = error
             motorpower = func.limit((FkP * error + FkI * integral + FkD * derivative) * scale, -500, 500)
             correctfordrift = ((heading - curr_heading) * TURNKP)
-            rightpower = motorpower + correctfordrift
-            leftpower = motorpower - correctfordrift
+            rightpower = round(motorpower + correctfordrift)
+            leftpower = round(motorpower - correctfordrift)
             dt.drive(FORWARD, FORWARD, leftpower, rightpower, RPM)
         dt.stop()
-    
+        
     def Turn(self, degrees, scale = 1, TkP=TURNKP, TkI=TURNKI, TkD=TURNKD, raw=False) -> None:
         integral = 0
         error = 2
         while not abs(error) < 1:
-            imu = gyro.heading() if calibrated else 1
-            error = ((degrees - gyro.heading() + 180) % 360) - 180 if raw else degrees - gyro.rotation()
+            imu = gyro.heading() if calibrated else (degrees - (XTracker.position() * 0.443 + 180)) % 360
+            error = ((degrees - imu + 180) % 360) - 180 if raw else degrees - imu
             integral += error
             derivative = (error - preverror)
             preverror = error
-            motorpower = func.limit((TkP * error + TkI * integral + TkD * derivative * scale), -500, 500)
+            motorpower = round(func.limit((TkP * error + TkI * integral + TkD * derivative * scale), -500, 500))
             dt.drive(FORWARD, REVERSE, motorpower, motorpower, RPM)
         dt.stop()
         
@@ -145,7 +145,8 @@ class DriveTrainControl:
             derivativeDrive = errorDrive - preverrorDrive
             preverrorDrive = errorDrive
             motorpowerDrive = func.limit((FORWARDKP * errorDrive + FORWARDKI * integralDrive + FORWARDKD * derivativeDrive) * scale, -500, 500)
-            errorAngle = ((degrees - gyro.heading() + 180) % 360) - 180 if raw else degrees - gyro.rotation()
+            imu = gyro.heading() if calibrated else (degrees - (XTracker.position() * 0.443 + 180)) % 360
+            errorAngle = ((degrees - imu + 180) % 360) - 180 if raw else degrees - imu
             integralAngle += errorAngle
             derivativeAngle = errorAngle - preverrorAngle
             preverrorAngle = errorAngle
@@ -153,23 +154,9 @@ class DriveTrainControl:
             motorpowerAngle = func.limit((((TURNKP * errorAngle + TURNKI * integralAngle) + TURNKD * derivativeAngle) * correction_strength * angleOutput) * scale, -500, 500)
             if abs(errorAngle) < 1:
                 angleOutput = 0
-            rightpower = motorpowerDrive - motorpowerAngle
-            leftpower = motorpowerDrive + motorpowerAngle
+            rightpower = round(motorpowerDrive - motorpowerAngle)
+            leftpower = round(motorpowerDrive + motorpowerAngle)
             dt.drive(FORWARD, FORWARD, leftpower, rightpower, RPM)
-        dt.stop()
-    
-    def Swing(self, angle, speed_multipy) -> None:
-        #idk if works
-        error = 2
-        while not abs(error) < 1:
-            error = ((angle - gyro.heading() + 180) % 360) - 180
-            motorpower = func.limit(TURNKP * error * speed_multipy, -500, 500)
-            if error < 0:
-                dt.stopping(HOLD, COAST)
-                dt.drive(FORWARD, None, 0, motorpower, RPM)
-            else:
-                dt.stopping(COAST, HOLD)
-                dt.drive(None, FORWARD, motorpower, 0, RPM)
         dt.stop()
         
     def getpos(self) -> tuple:
@@ -197,8 +184,7 @@ class DriveTrainControl:
             runodom = Thread(func.odometry, (offsetX, offsetY))
             recorded_path.append((currentxpos, currentypos, gyro.heading()))
             wait(time_interval, MSEC)
-            
-
+   
 class Funcs:
     #Miscellaneous Functions#
     
@@ -210,9 +196,7 @@ class Funcs:
         m_names = ["FrontLeft", "MiddleLeft", "BackLeft", "FrontRight", "MiddleRight", "BackRight"]
         while True:
             controller_1.screen.set_cursor(1, 1)
-            controller_1.screen.print(f"{brain.battery.capacity()}%")
-            controller_1.screen.next_row()
-            controller_1.screen.print(f"{dt.gettemp()}°F")
+            controller_1.screen.print(f"Battery: {brain.battery.capacity()}%    DtTemp: {dt.gettemp()}°F")
             if competition.is_enabled():
                 controller_1.screen.set_cursor(3, 1)
                 if dt.gettemp() > 65:
@@ -237,7 +221,7 @@ class Funcs:
         currentypos = offsety
         gyro.set_heading(((headingR - gyro.heading() + 180) % 360) - 180)
         gyro.set_rotation(headingR)
-        MM_PER_TICK = 0.443  #wheel diameter(MM) * pi / ticks(360)  #how much the robot travels after 1 degree of encoder revolution
+        MM_PER_TICK = 0.443  #wheel diameter(MM) * pi / ticks(360)  how much the robot travels after 1 degree of encoder revolution
         MMTOIN = 0.039
         while True:
             ytrackerpos = func.avg(YTracker1.position(), YTracker2.position()) * MM_PER_TICK
@@ -295,7 +279,7 @@ class Funcs:
         return math.dist([x1, y1], [x2, y2])
     
     def calc_angle(self, x1, y1, x2, y2) -> float:
-        return (round(math.degrees(math.atan2(y2 - y1, x2 - x1)), 2) + gyro.heading()) % 360
+        return (round(math.degrees(math.atan2(y2 - y1, x2 - x1)), 1) + gyro.heading()) % 360
     
     def calibrate_IMU(self) -> bool:
         global calibrated
@@ -310,7 +294,6 @@ class Funcs:
         brain.screen.set_cursor(4, 1)
         brain.screen.print("Gyro Calibration Successful" if calibrated else "Gyro Calibration Unsuccessful, using tracking wheels")
         return calibrated
-
 
 class Autons:
     #Autonomous Routes# 
@@ -385,14 +368,23 @@ def when_started1() -> None:
         path_record = Thread(dt.record_path, (record_path_start[1], record_path_start[2], record_path_start[3], record_path_start[4]))
     brain.screen.set_pen_width(15)
     actions = {
-        1: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(""), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(""))),
-        2: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(""), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(""))),
-        3: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(""), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(""))),
-        4: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(""), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(""))),
-        5: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(""), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(""))),
-        6: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(""), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(""))),
+        1: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(f"Auton: {currentAuton}"), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(f"Auton: {currentAuton}"))),
+        2: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(f"Auton: {currentAuton}"), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(f"Auton: {currentAuton}"))),
+        3: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(f"Auton: {currentAuton}"), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(f"Auton: {currentAuton}"))),
+        4: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(f"Auton: {currentAuton}"), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(f"Auton: {currentAuton}"))),
+        5: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(f"Auton: {currentAuton}"), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(f"Auton: {currentAuton}"))),
+        6: (lambda: (brain.screen.set_cursor(2, 1), brain.screen.print(f"Auton: {currentAuton}"), controller_1.screen.set_cursor(3, 1), controller_1.screen.print(f"Auton: {currentAuton}"))),
+    }
+    autons = {
+        1: "",
+        2: "",
+        3: "",
+        4: "",
+        5: "",
+        6: "",
     }
     while not competition.is_autonomous() or not competition.is_driver_control():
+        currentAuton = autons.get(autonselect, 1)
         if AutonSelector.pressing():
             autonselect = (autonselect + 1) % 7
             actions.get(autonselect, lambda: None)

@@ -1,0 +1,18 @@
+{
+	"extension": {
+		"version": "0.5.0",
+		"json": 2
+	},
+	"project": {
+		"name": "KryptoKnights_2602K_CompCode",
+		"description": "The competition code for KryptoKnights for the VRC 2024-2025 season.",
+		"creationDate": "4/3/2024, 4:17:56 PM",
+		"platform": "V5",
+		"language": "python",
+		"slot": 1,
+		"sdkVersion": "V5_1_0_1_19",
+		"python": {
+			"main": "src/main.py"
+		}
+	}
+}

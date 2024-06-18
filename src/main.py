@@ -4,7 +4,7 @@
     Module:       main.py                                                      
  	Author:       Pahlaj Sharma                                                
  	Created:      4/3/2024, 4:17:56 PM                                         
- 	Description:  2602K Kronos Competition Code                               
+ 	Description:  2602K KryptoKnights Competition Code                               
                                                                               
  ---------------------------------------------------------------------------- '''
 

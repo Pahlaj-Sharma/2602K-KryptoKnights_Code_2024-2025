@@ -104,11 +104,11 @@ class DriveTrainControl:
         integral = trackertotalvalue = 0
         mmforward = distance * 25.4
         lastposytracker = func.avg(YTracker1.position(), YTracker2.position())
-        lastimupos = gyro.rotation() if calibrated else XTracker.position() * 0.443
+        lastpos = gyro.rotation()
         error = 6
         while not abs(error) < 5:
             trackertotalvalue += func.avg(YTracker1.position(), YTracker2.position())
-            curr_heading = gyro.rotation() - lastimupos
+            curr_heading = gyro.rotation() - lastpos
             error = mmforward - (trackertotalvalue - lastposytracker)
             integral += error
             derivative = error - preverror
@@ -124,7 +124,7 @@ class DriveTrainControl:
         integral = 0
         error = 2
         while not abs(error) < 1:
-            imu = gyro.heading() if calibrated else (degrees - (XTracker.position() * 0.443 + 180)) % 360
+            imu = gyro.heading()
             error = ((degrees - imu + 180) % 360) - 180 if raw else degrees - imu
             integral += error
             derivative = (error - preverror)
@@ -145,7 +145,7 @@ class DriveTrainControl:
             derivativeDrive = errorDrive - preverrorDrive
             preverrorDrive = errorDrive
             motorpowerDrive = func.limit((FORWARDKP * errorDrive + FORWARDKI * integralDrive + FORWARDKD * derivativeDrive) * scale, -500, 500)
-            imu = gyro.heading() if calibrated else (degrees - (XTracker.position() * 0.443 + 180)) % 360
+            imu = gyro.heading()
             errorAngle = ((degrees - imu + 180) % 360) - 180 if raw else degrees - imu
             integralAngle += errorAngle
             derivativeAngle = errorAngle - preverrorAngle
@@ -168,15 +168,7 @@ class DriveTrainControl:
     def driveto(self, x, y, heading = None) -> None:
         dt.Turn(func.calc_angle(currentxpos, currentypos, x, y) if heading is None else ((heading - gyro.heading() + 180) % 360) - 180)
         dt.Forward(func.calc_distance(currentxpos, currentypos, x, y))
-        
-    def curveto(self, *points, strength=None, disBeforeCurve = 0) -> None:
-        x, y = points[-1]
-        if strength is None:
-            func.expREG(points)
-            dt.Curve(func.length_of_curve(points[-1]), disBeforeCurve, func.calc_angle(currentxpos, currentypos, x, y), b)
-        else:
-            dt.Curve(func.length_of_curve(points[-1]), disBeforeCurve, func.calc_angle(currentxpos, currentypos, x, y), strength)
-    
+
     def record_path(self, time_interval = 50, offsetX = 0, offsetY = 0) -> None:
         global runodom, recorded_path
         recorded_path = []
@@ -226,48 +218,10 @@ class Funcs:
         while True:
             ytrackerpos = func.avg(YTracker1.position(), YTracker2.position()) * MM_PER_TICK
             xtrackerpos = XTracker.position() * MM_PER_TICK
-            calcincossin = func.avg(gyro.rotation(), math.degrees(abs(xtrackerpos) / ROBOT_WIDTH_MM)) if calibrated else math.degrees(abs(xtrackerpos)) / ROBOT_WIDTH_MM
+            calcincossin = func.avg(gyro.rotation(), math.degrees(abs(xtrackerpos) / ROBOT_WIDTH_MM))
             currentxpos = ((ytrackerpos * math.cos(calcincossin)) * MMTOIN)
             currentypos = ((ytrackerpos * math.sin(calcincossin)) * MMTOIN)
             wait(50, MSEC)
-            
-    def expREG(self, *points) -> None:
-        global a, b
-        try:
-            x_data: list = []
-            y_data: list = []
-            x_data, y_data = list(map(list, zip(*points)))
-            x_data.insert(0, currentxpos)
-            y_data.insert(0, currentypos)
-            n = len(x_data)
-            sum_x = sum(x_data)
-            sum_y = sum([math.log(y) for y in y_data])
-            sum_xx = sum([x**2 for x in x_data])
-            sum_xy = sum([x * math.log(y) for x, y in zip(x_data, y_data)])
-            b = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x**2)
-            a = 2.718 ** ((sum_y - b * sum_x) / n)
-            b = 2.718 ** b
-        except ValueError:
-            controller_1.screen.set_cursor(3, 1)
-            controller_1.screen.print("Invalid domain, running default")
-            x, y = points[-1]
-            dt.Turn(func.calc_angle(currentxpos, currentypos, x, y))
-            dt.Forward(func.calc_distance(currentxpos, currentypos, x, y))
-
-    def length_of_curve(self, last_point) -> float:
-        min_x = round(currentxpos)
-        max_x = last_point[0]
-        approx_length = 0
-        past_x = currentxpos
-        past_y = currentypos
-        direction = 1 if min_x < max_x else -1
-        step = 5 * direction
-        for current_x in range(min_x, max_x + direction, step):
-            current_y = a * (b ** current_x)
-            approx_length += math.dist((current_x, current_y), (past_x, past_y))
-            past_x = current_x
-            past_y = current_y
-        return approx_length * direction
 
     def limit(self, value, min, max) -> int:
         return (value if min <= value <= max else min if value < min else max)
@@ -281,7 +235,7 @@ class Funcs:
     def calc_angle(self, x1, y1, x2, y2) -> float:
         return (round(math.degrees(math.atan2(y2 - y1, x2 - x1)), 1) + gyro.heading()) % 360
     
-    def calibrate_IMU(self) -> bool:
+    def calibrate_IMU(self):
         global calibrated
         calibrated: bool = False
         for attempt in range(1, 6):
@@ -289,11 +243,9 @@ class Funcs:
             while gyro.is_calibrating():
                 sleep(50)
             if abs(gyro.rotation()) < 1:
-                calibrated = True
                 break
         brain.screen.set_cursor(4, 1)
-        brain.screen.print("Gyro Calibration Successful" if calibrated else "Gyro Calibration Unsuccessful, using tracking wheels")
-        return calibrated
+        brain.screen.print("Gyro Calibration Successful" if calibrated else "Gyro Calibration Unsuccessful")
 
 class Autons:
     #Autonomous Routes# 
@@ -315,9 +267,7 @@ class Autons:
         runodom = Thread(func.odometry, (88, 120, -112))
         dt.driveto(144, 98)
         dt.Turn(236)
-        dt.curveto((116, 83), (78, 78))
         dt.Turn(345)
-        dt.curveto((88, 105), (120, 120))
         raise AssertionError(f"No script for {autonselect}")
 
 

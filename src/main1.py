@@ -10,11 +10,9 @@
  ---------------------------------------------------------------------------- '''
 
 ''' --------------------------------------------------------------------------------------------------------
-    -- Developer Notes --
+    -- Notes --
     
-    - This code has not yet been tested on a robot, this is prewritten for when the robot is actually built
-    - All numbers, variables, constants (except PID values) are rounded to the nearest hundreth
-    -                                
+    - All numbers, variables, constants (except PID values) are rounded to the nearest hundreth                               
                                                                               
  ----------------------------------------------------------------------------------------------------------- '''
 

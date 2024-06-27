@@ -13,8 +13,7 @@
     -- Developer Notes --
     
     - This code has not yet been tested on a robot, this is prewritten for when the robot is actually built
-    - All numbers, variables, constants (except PID values) are rounded to the nearest hundreth
-    -                                
+    - All numbers, variables, constants (except PID values) are rounded to the nearest hundreth                              
                                                                               
  ----------------------------------------------------------------------------------------------------------- '''
 
@@ -136,16 +135,16 @@ class Drive_Train_Control:
         Integral = 0
         MM_Forward = Distance_Inches * 25.4
         Last_Position_Parallel_Tracker = Parallel_Tracker_Position
-        Last_Gyro_Position = inertial.rotation()
+        Last_Gyro_Position = inertial.rotation() if calibrated else 0
         Error = 6
         while not abs(Error) < 5:
-            Current_Heading = inertial.rotation() - Last_Gyro_Position
+            Current_Heading = inertial.rotation() - Last_Gyro_Position if calibrated else 0
             Error = MM_Forward - (Parallel_Tracker_Position - Last_Position_Parallel_Tracker)
             Integral += Error
             Derivative = Error - Previous_Error
             Previous_Error = Error
             Motor_Power = func.limit(round((KP * Error + KI * Integral + KD * Derivative) * Speed_Scale), -450, 450)
-            Drift_Correction = ((Robot_Heading - Current_Heading) * KP)
+            Drift_Correction = ((Robot_Heading - Current_Heading) * KP) if calibrated else 0
             Right_Motor_Power = Motor_Power + Drift_Correction
             Left_Motor_Power = Motor_Power - Drift_Correction
             dt.drive(FORWARD, FORWARD, Left_Motor_Power, Right_Motor_Power, RPM)
@@ -157,7 +156,8 @@ class Drive_Train_Control:
         Integral = 0
         Error = 2
         while not abs(Error) < 1:
-            Error = ((Angle_Degrees - inertial.heading() + 180) % 360) - 180 if not Raw_Angle else Angle_Degrees - inertial.heading()
+            Rotation_IMU = inertial.heading() if calibrated else Perpendicular_Tracker_Position
+            Error = ((Angle_Degrees - Rotation_IMU + 180) % 360) - 180 if not Raw_Angle else Angle_Degrees - Rotation_IMU
             Integral += Error
             Derivative = Error - Previous_Error
             Previous_Error = Error
@@ -174,12 +174,13 @@ class Drive_Train_Control:
         Error_Drive = 6
         Error_Angle = 2
         while not (abs(Error_Drive) < 5 and abs(Error_Angle) < 1):
+            Rotation_IMU = inertial.heading() if calibrated else Perpendicular_Tracker_Position
             Error_Drive = MM_Forward - (Parallel_Tracker_Position - Last_Position_Paralled_Tracker)
             Integral_Drive += Error_Drive
             Derivative_Drive = Error_Drive - Previous_Error_Drive
             Previous_Error_Drive = Error_Drive
             Motor_Power_Drive = func.limit(round(FKP * Error_Drive + FKI * Integral_Drive + FKD * Derivative_Drive), -450, 450)
-            Error_Angle = ((Angle_Degrees - inertial.heading() + 180) % 360) - 180 if not Raw_Angle else Angle_Degrees - inertial.heading()
+            Error_Angle = ((Angle_Degrees - Rotation_IMU + 180) % 360) - 180 if not Raw_Angle else Angle_Degrees - Rotation_IMU
             Integral_Angle += Error_Angle
             Derivative_Angle = Error_Angle - Previous_Error_Angle
             Previous_Error_Angle = Error_Angle
@@ -236,8 +237,8 @@ class Miscellaneous_Functions:
         MM_TO_INCHES = 0.04
         while True:
             Parallel_Tracker_Position = func.average(Odom_Parallel_1.position(), Odom_Parallel_2.position()) * MM_PER_TICK
-            Perpendicular_Tracker_Position = (math.degrees(Odom_Perpendicular.position() * MM_PER_TICK)) % 360
-            Calculate_Theta = (func.average(inertial.rotation(), abs(Perpendicular_Tracker_Position) / ROBOT_WIDTH_MM))
+            Perpendicular_Tracker_Position = (math.degrees(Odom_Perpendicular.position() * MM_PER_TICK)) % 360 # Wrap around 360 degrees
+            Calculate_Theta = (func.average(inertial.rotation(), Perpendicular_Tracker_Position / ROBOT_WIDTH_MM)) if calibrated else Perpendicular_Tracker_Position / ROBOT_WIDTH_MM
             Current_X_Position = round(((Parallel_Tracker_Position * math.cos(Calculate_Theta)) * MM_TO_INCHES), 2)
             Current_Y_Position = round(((Parallel_Tracker_Position * math.sin(Calculate_Theta)) * MM_TO_INCHES), 2)
             
@@ -259,12 +260,14 @@ class Miscellaneous_Functions:
     
     def calibrate_inertial(self):
         # Calibrates Inertial Sensor #
+        global calibrated
         calibrated: bool = False
         for attempt in range(1, 6):
             inertial.calibrate()
             while inertial.is_calibrating():
                 sleep(50)
             if abs(inertial.rotation()) < 1.5:
+                calibrated = True
                 break
             brain.screen.set_cursor(4, 1)
             brain.screen.print("Gyro Calibration Successful" if calibrated else "Gyro Calibration Unsuccessful")

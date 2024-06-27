@@ -1,5 +1,11 @@
 # Changelog - 2602K KryptoKnights
 
+## Version 1.110
+#### General
+#### Stable Release
+- Fixed Failed Calibration to now Default to Tracking Wheels
+- Bug Fixes
+
 ## Version 1.100
 #### General
 #### Stable Release
@@ -15,4 +21,5 @@ In version 2.0.0 we've reorganized the folders that files are grouped into, so n
 - Bug Fixes
 
 ## Version 1.000
+####General
 - Release of Program

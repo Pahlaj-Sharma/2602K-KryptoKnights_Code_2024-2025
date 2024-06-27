@@ -5,15 +5,15 @@
  	Author:       Pahlaj Sharma                                                
  	Created:      4/3/2024, 4:17:56 PM                                         
  	Description:  2602K KryptoKnights Competition Code
-    Github Repository: https://github.com/Pahlaj-Sharma/KryptoKnights_RobotCode_2602K                               
+    GitHub Repository: https://github.com/Pahlaj-Sharma/KryptoKnights_RobotCode_2602K                               
                                                                               
  ---------------------------------------------------------------------------- '''
 
 ''' --------------------------------------------------------------------------------------------------------
     -- Developer Notes --
     
-    - This code has not yet been tested on a robot, this is prewritten for when the robot is actually built
-    - All numbers, variables, constants (except PID values) are rounded to the nearest hundreth                              
+    - This code has not yet been tested on a robot, this is prewritten for when the robot is built
+    - All numbers, variables, and constants (except PID values) are rounded to the nearest hundredth                              
                                                                               
  ----------------------------------------------------------------------------------------------------------- '''
 

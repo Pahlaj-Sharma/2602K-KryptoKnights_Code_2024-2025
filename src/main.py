@@ -5,15 +5,15 @@
  	Author:       Pahlaj Sharma                                                
  	Created:      4/3/2024, 4:17:56 PM                                         
  	Description:  2602K KryptoKnights Competition Code
-    GitHub Repository: https://github.com/Pahlaj-Sharma/KryptoKnights_RobotCode_2602K                               
+    Github Repository: https://github.com/Pahlaj-Sharma/KryptoKnights_RobotCode_2602K                               
                                                                               
  ---------------------------------------------------------------------------- '''
 
 ''' --------------------------------------------------------------------------------------------------------
     -- Developer Notes --
     
-    - This code has not yet been tested on a robot, this is prewritten for when the robot is built
-    - All numbers, variables, and constants (except PID values) are rounded to the nearest hundredth                              
+    - This code has not yet been tested on a robot, this is prewritten for when the robot is actually built
+    - All numbers, variables, constants (except PID values) are rounded to the nearest hundreth                              
                                                                               
  ----------------------------------------------------------------------------------------------------------- '''
 
@@ -34,11 +34,11 @@ Middle_Top_Left = Motor(Ports.PORT4, GearSetting.RATIO_6_1, True)
 Middle_Bottom_Left = Motor(Ports.PORT5, GearSetting.RATIO_6_1, False)
 # Back Left Drivetrain Motor Reverse 6:1
 Back_Left = Motor(Ports.PORT6, GearSetting.RATIO_6_1, True)
-inertial = Inertial(Ports.PORT7)  # Inertial
+# Inertial Sensor - Gyro
+inertial = Inertial(Ports.PORT7)
 # Limit Switch Autonomous Selecter
 Autonomous_Selector = Limit(brain.three_wire_port.a)
-# Perpendicular Tracking Wheel Odometry
-Odom_Perpendicular = Rotation(Ports.PORT8)
+Odom_Perpendicular = Rotation(Ports.PORT8) # Perpendicular Tracking Wheel Odometry
 Odom_Parallel_1 = Rotation(Ports.PORT9)  # Parallel Tracking Wheel Odometry 1
 Odom_Parallel_2 = Rotation(Ports.PORT14)  # Paralled Tracking Wheel Odometry 2
 # Distance Sensor Odometry Correction FRONT
@@ -150,7 +150,6 @@ class Drive_Train_Control:
             dt.drive(FORWARD, FORWARD, Left_Motor_Power, Right_Motor_Power, RPM)
         dt.stop()
             
-        
     # PID Function Turn #
     def turn(self, Angle_Degrees: float, Speed_Scale: float = 1, KP: float = TURN_KP, KI: float = TURN_KI, KD: float = TURN_KD, Raw_Angle: bool = False) -> None:
         Integral = 0
@@ -241,6 +240,7 @@ class Miscellaneous_Functions:
             Calculate_Theta = (func.average(inertial.rotation(), Perpendicular_Tracker_Position / ROBOT_WIDTH_MM)) if calibrated else Perpendicular_Tracker_Position / ROBOT_WIDTH_MM
             Current_X_Position = round(((Parallel_Tracker_Position * math.cos(Calculate_Theta)) * MM_TO_INCHES), 2)
             Current_Y_Position = round(((Parallel_Tracker_Position * math.sin(Calculate_Theta)) * MM_TO_INCHES), 2)
+            wait(10, MSEC)
             
     def average(self, *values) -> float:
         # Returns the Average of a List of Numbers #
@@ -271,7 +271,7 @@ class Miscellaneous_Functions:
                 break
             brain.screen.set_cursor(4, 1)
             brain.screen.print("Gyro Calibration Successful" if calibrated else "Gyro Calibration Unsuccessful")
-            
+
             
 class Autonomous_Routes:
     # Autonomous Routes #

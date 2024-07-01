@@ -1,11 +1,11 @@
 ''' ---------------------------------------------------------------------------- 
                                                                               
  	Copyright © Pahlaj Sharma 2024-2025, All rights reserved.                  
-    Module:       main.py                                                      
+  Module:       main.py                                                      
  	Author:       Pahlaj Sharma                                                
  	Created:      4/3/2024, 4:17:56 PM                                         
  	Description:  2602K KryptoKnights Competition Code
-    GitHub Repository: https://github.com/Pahlaj-Sharma/KryptoKnights_RobotCode_2602K                               
+  GitHub Repository: https://github.com/Pahlaj-Sharma/KryptoKnights_RobotCode_2602K                               
                                                                               
  ---------------------------------------------------------------------------- '''
 

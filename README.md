@@ -1,5 +1,11 @@
 # Changelog - 2602K KryptoKnights
 
+## Version 1.121
+#### General
+#### Stable Release
+- Added 'test.py' for beta updates and in-progress additions
+- Minor bug/typo fixes
+
 ## Version 1.110
 #### General
 #### Stable Release

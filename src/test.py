@@ -5,17 +5,17 @@
  	Author:       Pahlaj Sharma                                                
  	Created:      4/3/2024, 4:17:56 PM                                         
  	Description:  2602K KryptoKnights Competition Code
-    Github Repository: https://github.com/Pahlaj-Sharma/KryptoKnights_RobotCode_2602K                               
+    GitHub: https://github.com/Pahlaj-Sharma/KryptoKnights_RobotCode_2602K                               
                                                                               
- ---------------------------------------------------------------------------- '''
+ ------------------------------------------------------------------------------- '''
 
-''' --------------------------------------------------------------------------------------------------------
+''' ----------------------------------------------------------------------------
     -- Developer Notes --
     
-    - This code has not yet been tested on a robot, this is prewritten for when the robot is actually built
-    - All numbers, variables, constants (except PID values) are rounded to the nearest hundreth                              
+    - This code has not yet been tested on a robot
+    - All values (except PID) are rounded to the nearest hundredth                              
                                                                               
- ----------------------------------------------------------------------------------------------------------- '''
+ ------------------------------------------------------------------------------- '''
 
 
 from vex import *  # Import Modules
@@ -48,7 +48,7 @@ Odom_Left = Distance(Ports.PORT12)  # Distance Sensor Odometry Correction LEFT
 # Distance Sensor Odometry Correction RIGHT
 Odom_Right = Distance(Ports.PORT13)
 
-# Clear Screen and Reset Functions #
+# Clear Screen #
 wait(230, MSEC)
 print("\033[2J")
 brain.screen.clear_screen()
@@ -70,8 +70,14 @@ Back_Right_motor: bool = True
 Middle_Top_Left_motor: bool = True
 Middle_Bottom_Left_motor: bool = True
 Back_Left_motor: bool = True
-
-
+Motors = [
+        (Middle_Top_Right, Middle_Top_Right_motor),
+        (Middle_Bottom_Right, Middle_Bottom_Right_motor),
+        (Back_Right, Back_Right_motor),
+        (Middle_Top_Left, Middle_Top_Left_motor),
+        (Middle_Bottom_Left, Middle_Bottom_Left_motor),
+        (Back_Left, Back_Left_motor)
+]
 class Drive_Train_Control:
     # DriveTrain Functions #
 
@@ -81,50 +87,28 @@ class Drive_Train_Control:
         self.wd = wd  # Wheel Diameter
         self.gr = gr  # Gear Ratio
 
-    def drive(self, Direction_Right_Motors, Direction_Left_Motors, Speed_Left_Motors: float, Speed_Right_Motors: float, Unit) -> None:
+    def spin(self, Direction_Right_Motors, Direction_Left_Motors, Speed_Left_Motors: float, Speed_Right_Motors: float, Unit) -> None:
         # Drive Motors #
-        Middle_Top_Right.spin(Direction_Right_Motors, Speed_Right_Motors * Middle_Top_Right_motor, Unit)
-        Middle_Bottom_Right.spin(Direction_Right_Motors, Speed_Right_Motors * Middle_Bottom_Right_motor, Unit)
-        Back_Right.spin(Direction_Right_Motors, Speed_Right_Motors * Back_Right_motor, Unit)
-        Middle_Top_Left.spin(Direction_Left_Motors, Speed_Left_Motors * Middle_Top_Left_motor, Unit)
-        Middle_Bottom_Left.spin(Direction_Left_Motors, Speed_Left_Motors * Middle_Bottom_Left_motor, Unit)
-        Back_Left.spin(Direction_Left_Motors, Speed_Left_Motors * Back_Left_motor, Unit)
+        for motor, multiplier in Motors:
+            motor_name = [name for name, value in globals().items() if value is motor][0]
+            motor.spin(Direction_Right_Motors, Speed_Right_Motors * multiplier, Unit) if "Right" in motor_name else motor.spin(Direction_Left_Motors, Speed_Left_Motors * multiplier, Unit)
 
     def stop(self) -> None:
         # Stop Motors #
-        Middle_Top_Right.set_velocity(0, RPM)
-        Middle_Bottom_Right.set_velocity(0, RPM)
-        Back_Right.set_velocity(0, RPM)
-        Middle_Top_Left.set_velocity(0, RPM)
-        Middle_Bottom_Left.set_velocity(0, RPM)
-        Back_Left.set_velocity(0, RPM)
+        for motor, i in Motors:
+            motor.set_velocity(0, RPM)
 
-    def stopping(self, Type_Left_Motors=COAST, Type_Right_Motors=COAST):
+    def stopping(self, Type_Right_Motors=COAST, Type_Left_Motors=COAST):
         # Set Stopping of Motors #
-        Middle_Top_Right.set_stopping(Type_Right_Motors)
-        Middle_Bottom_Right.set_stopping(Type_Right_Motors)
-        Back_Right.set_stopping(Type_Right_Motors)
-        Middle_Top_Left.set_stopping(Type_Left_Motors)
-        Middle_Bottom_Left.set_stopping(Type_Left_Motors)
-        Back_Left.set_stopping(Type_Left_Motors)
+        for motor, i in Motors:
+            motor_name = [name for name, value in globals().items() if value is motor][0]
+            motor.set_stopping(Type_Right_Motors) if "Right" in motor_name else motor.set_stopping(Type_Left_Motors)
 
-    def velocity(self, Speed_Left_Motors: float, Speed_Right_Motors: float, Unit):
+    def velocity(self, Speed_Right_Motors: float, Speed_Left_Motors: float, Unit):
         # Set Motor Velocity #
-        Middle_Top_Right.set_velocity(Speed_Right_Motors * Middle_Top_Right_motor, Unit)
-        Middle_Bottom_Right.set_velocity(Speed_Right_Motors * Middle_Bottom_Right_motor, Unit)
-        Back_Right.set_velocity(Speed_Right_Motors * Back_Right_motor, Unit)
-        Middle_Top_Left.set_velocity(Speed_Left_Motors * Middle_Top_Left_motor, Unit)
-        Middle_Bottom_Left.set_velocity(Speed_Left_Motors * Middle_Bottom_Left_motor, Unit)
-        Back_Left.set_velocity(Speed_Left_Motors * Back_Left_motor, Unit)
-        
-    def spin(self, Direction_Left_Motors, Direction_Right_Motors) -> None:
-        # Spin Motors in a Specific Direction
-        Middle_Top_Right.spin(Direction_Right_Motors)
-        Middle_Bottom_Right.spin(Direction_Right_Motors)
-        Back_Right.spin(Direction_Right_Motors)
-        Middle_Top_Left.spin(Direction_Left_Motors)
-        Middle_Bottom_Left.spin(Direction_Left_Motors)
-        Back_Left.spin(Direction_Left_Motors)
+        for motor, multiplier in Motors:
+            motor_name = [name for name, value in globals().items() if value is motor][0]
+            motor.set_velocity(Speed_Right_Motors * multiplier, Unit) if "Right" in motor_name else motor.set_velocity(Speed_Left_Motors * multiplier, Unit)
     
     def get_current_temperature(self) -> float:
         # Returns Average Temperature of the Drivetrain
@@ -135,17 +119,19 @@ class Drive_Train_Control:
         Integral = 0
         MM_Forward = Distance_Inches * 25.4
         Last_Position_Parallel_Tracker = Parallel_Tracker_Position
-        Last_Gyro_Position = inertial.rotation() if calibrated else 0
-        Previous_Error = 0
+        Last_Gyro_Position = inertial.rotation() if Calibrated else 0
         Error = 6
         while not abs(Error) < 5:
-            Current_Heading = inertial.rotation() - Last_Gyro_Position if calibrated else 0
-            Motor_Power, Integral, Previous_Error = func.calculate_pid(KP, KI, KD, MM_Forward, Parallel_Tracker_Position - Last_Position_Parallel_Tracker, Previous_Error, Integral)
-            Motor_Power = func.limit(round(Motor_Power * Speed_Scale), -450, 450)
-            Drift_Correction = ((Robot_Heading - Current_Heading) * KP) if calibrated else 0
+            Current_Heading = inertial.rotation() - Last_Gyro_Position if Calibrated else 0
+            Error = MM_Forward - (Parallel_Tracker_Position - Last_Position_Parallel_Tracker)
+            Integral += Error
+            Derivative = Error - Previous_Error
+            Previous_Error = Error
+            Motor_Power = func.limit(round((KP * Error + KI * Integral + KD * Derivative) * Speed_Scale), -450, 450)
+            Drift_Correction = ((Robot_Heading - Current_Heading) * KP) if Calibrated else 0
             Right_Motor_Power = Motor_Power + Drift_Correction
             Left_Motor_Power = Motor_Power - Drift_Correction
-            dt.drive(FORWARD, FORWARD, Left_Motor_Power, Right_Motor_Power, RPM)
+            dt.spin(FORWARD, FORWARD, Left_Motor_Power, Right_Motor_Power, RPM)
         dt.stop()
             
     # PID Function Turn #
@@ -153,13 +139,13 @@ class Drive_Train_Control:
         Integral = 0
         Error = 2
         while not abs(Error) < 1:
-            Rotation_IMU = inertial.heading() if calibrated else Perpendicular_Tracker_Position
+            Rotation_IMU = inertial.heading() if Calibrated else Perpendicular_Tracker_Position
             Error = ((Angle_Degrees - Rotation_IMU + 180) % 360) - 180 if not Raw_Angle else Angle_Degrees - Rotation_IMU
             Integral += Error
             Derivative = Error - Previous_Error
             Previous_Error = Error
             Motor_Power = func.limit(round(KP * Error + KI * Integral + KD * Derivative), -450, 450)
-            dt.drive(FORWARD, REVERSE, Motor_Power, Motor_Power, RPM)
+            dt.spin(FORWARD, REVERSE, Motor_Power, Motor_Power, RPM)
         dt.stop()
         
     # PID Function Curve #
@@ -171,7 +157,7 @@ class Drive_Train_Control:
         Error_Drive = 6
         Error_Angle = 2
         while not (abs(Error_Drive) < 5 and abs(Error_Angle) < 1):
-            Rotation_IMU = inertial.heading() if calibrated else Perpendicular_Tracker_Position
+            Rotation_IMU = inertial.heading() if Calibrated else Perpendicular_Tracker_Position
             Error_Drive = MM_Forward - (Parallel_Tracker_Position - Last_Position_Paralled_Tracker)
             Integral_Drive += Error_Drive
             Derivative_Drive = Error_Drive - Previous_Error_Drive
@@ -186,12 +172,13 @@ class Drive_Train_Control:
             Angle_Output = 0 if abs(Error_Angle) < 1 else 1
             Right_Motor_Power = Motor_Power_Drive - Motor_Power_Angle
             Left_Motor_Power = Motor_Power_Drive + Motor_Power_Angle
-            dt.drive(FORWARD, FORWARD, Left_Motor_Power, Right_Motor_Power, RPM)
+            dt.spin(FORWARD, FORWARD, Left_Motor_Power, Right_Motor_Power, RPM)
         dt.stop()
         
     # PID Function Drive To #
     def drive_to_coordinate(self, X, Y, Heading = None) -> None:
         ...
+    
         
 class Miscellaneous_Functions:
     # Miscellaneous Functions #
@@ -235,7 +222,7 @@ class Miscellaneous_Functions:
         while True:
             Parallel_Tracker_Position = func.average(Odom_Parallel_1.position(), Odom_Parallel_2.position()) * MM_PER_TICK
             Perpendicular_Tracker_Position = (math.degrees(Odom_Perpendicular.position() * MM_PER_TICK)) % 360 # Wrap around 360 degrees
-            Calculate_Theta = (func.average(inertial.rotation(), Perpendicular_Tracker_Position / ROBOT_WIDTH_MM)) if calibrated else Perpendicular_Tracker_Position / ROBOT_WIDTH_MM
+            Calculate_Theta = (func.average(inertial.rotation(), Perpendicular_Tracker_Position / ROBOT_WIDTH_MM)) if Calibrated else Perpendicular_Tracker_Position / ROBOT_WIDTH_MM
             Current_X_Position = round(((Parallel_Tracker_Position * math.cos(Calculate_Theta)) * MM_TO_INCHES), 2)
             Current_Y_Position = round(((Parallel_Tracker_Position * math.sin(Calculate_Theta)) * MM_TO_INCHES), 2)
             wait(10, MSEC)
@@ -258,25 +245,19 @@ class Miscellaneous_Functions:
     
     def calibrate_inertial(self):
         # Calibrates Inertial Sensor #
-        global calibrated
-        calibrated: bool = False
+        global Calibrated
+        Calibrated = False
         for attempt in range(1, 6):
             inertial.calibrate()
             while inertial.is_calibrating():
                 sleep(50)
             if abs(inertial.rotation()) < 1.5:
-                calibrated = True
+                Calibrated = True
                 break
             brain.screen.set_cursor(4, 1)
-            brain.screen.print("Gyro Calibration Successful" if calibrated else "Gyro Calibration Unsuccessful")
+            brain.screen.print("Gyro Calibration Successful" if Calibrated else "Gyro Calibration Unsuccessful")
+
             
-    def calculate_pid(self, KP, KI, KD, Target_Position, Current_Position, Previous_Error, Integral) -> tuple:
-        Error = Target_Position - Current_Position
-        Integral += Error
-        Derivative = Error - Previous_Error
-        Previous_Error = Error
-        return (KP * Error + KI * Integral + KD * Derivative), Integral, Previous_Error
-        
 class Autonomous_Routes:
     # Autonomous Routes #
     
@@ -347,7 +328,7 @@ def when_started1() -> None:
         6: "",
     }
     # Autonomous Selector Logic #
-    while not competition.is_autonomous() or not competition.is_driver_control():
+    while not (competition.is_autonomous() or competition.is_driver_control()):
         currentAuton = autons.get(autonselect, 1)
         if Autonomous_Selector.pressing():
             autonselect = (autonselect + 1) % 7
@@ -372,10 +353,9 @@ def ondriver_drivercontrol_0() -> None:
         controleraxis1pos = main_controller.axis1.position()
         controleraxis3pos = main_controller.axis3.position()
         if math.fabs(controleraxis1pos) + math.fabs(controleraxis3pos) > Deadband:
-            dt.velocity(controleraxis3pos + controleraxis1pos, controleraxis3pos - controleraxis1pos, PERCENT)
+            dt.spin(FORWARD, FORWARD, controleraxis3pos + controleraxis1pos, controleraxis3pos - controleraxis1pos, PERCENT)
         else:
             dt.velocity(0, 0, PERCENT)
-        dt.spin(FORWARD, FORWARD)
         wait(10, MSEC)
 
 

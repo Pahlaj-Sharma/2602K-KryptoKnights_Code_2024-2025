@@ -92,25 +92,25 @@ class Drive_Train_Control:
     def spin(self, Direction_Right_Motors, Direction_Left_Motors, Speed_Left_Motors: float, Speed_Right_Motors: float, Unit) -> None:
         # Drive Motors #
         for motor, multiplier in Motors:
-            motor_name = [name for name, value in globals().items() if value is motor][0]
-            motor.spin(Direction_Right_Motors, Speed_Right_Motors * multiplier, Unit) if "Right" in motor_name else motor.spin(Direction_Left_Motors, Speed_Left_Motors * multiplier, Unit)
+            motor_name = [name for name, value in globals().items() if value is motor][0] # Returns the motor name
+            motor.spin(Direction_Right_Motors, Speed_Right_Motors * multiplier, Unit) if "Right" in motor_name else motor.spin(Direction_Left_Motors, Speed_Left_Motors * multiplier, Unit) # Set's value to left or right based on name
 
     def stop(self) -> None:
         # Stop Motors #
         for motor, i in Motors:
-            motor.set_velocity(0, RPM)
+            motor.set_velocity(0, RPM) # Sets RPM to 0
 
     def stopping(self, Type_Right_Motors=COAST, Type_Left_Motors=COAST):
         # Set Stopping of Motors #
         for motor, i in Motors:
-            motor_name = [name for name, value in globals().items() if value is motor][0]
-            motor.set_stopping(Type_Right_Motors) if "Right" in motor_name else motor.set_stopping(Type_Left_Motors)
+            motor_name = [name for name, value in globals().items() if value is motor][0] # Returns the motor name
+            motor.set_stopping(Type_Right_Motors) if "Right" in motor_name else motor.set_stopping(Type_Left_Motors) # Set's value to left or right based on name
 
     def velocity(self, Speed_Right_Motors: float, Speed_Left_Motors: float, Unit):
         # Set Motor Velocity #
         for motor, multiplier in Motors:
-            motor_name = [name for name, value in globals().items() if value is motor][0]
-            motor.set_velocity(Speed_Right_Motors * multiplier, Unit) if "Right" in motor_name else motor.set_velocity(Speed_Left_Motors * multiplier, Unit)
+            motor_name = [name for name, value in globals().items() if value is motor][0] # Returns the motor name
+            motor.set_velocity(Speed_Right_Motors * multiplier, Unit) if "Right" in motor_name else motor.set_velocity(Speed_Left_Motors * multiplier, Unit) # Set's value to left or right based on name
     
     def get_current_temperature(self) -> float:
         # Returns Average Temperature of the Drivetrain
@@ -146,7 +146,7 @@ class Drive_Train_Control:
             Integral += Error
             Derivative = Error - Previous_Error
             Previous_Error = Error
-            Motor_Power = func.limit(round(KP * Error + KI * Integral + KD * Derivative), -450, 450)
+            Motor_Power = func.limit(round((KP * Error + KI * Integral + KD * Derivative) * Speed_Scale), -450, 450)
             dt.spin(FORWARD, REVERSE, Motor_Power, Motor_Power, RPM)
         dt.stop()
         
@@ -164,22 +164,24 @@ class Drive_Train_Control:
             Integral_Drive += Error_Drive
             Derivative_Drive = Error_Drive - Previous_Error_Drive
             Previous_Error_Drive = Error_Drive
-            Motor_Power_Drive = func.limit(round(FKP * Error_Drive + FKI * Integral_Drive + FKD * Derivative_Drive), -450, 450)
+            Motor_Power_Drive = func.limit(round((FKP * Error_Drive + FKI * Integral_Drive + FKD * Derivative_Drive) * Speed_Scale), -450, 450)
             Error_Angle = ((Angle_Degrees - Rotation_IMU + 180) % 360) - 180 if not Raw_Angle else Angle_Degrees - Rotation_IMU
             Integral_Angle += Error_Angle
             Derivative_Angle = Error_Angle - Previous_Error_Angle
             Previous_Error_Angle = Error_Angle
-            Angle_Output = 1 if abs(Parallel_Tracker_Position - Last_Position_Paralled_Tracker) * 0.04 >= Distance_Before_Turn else 0
-            Motor_Power_Angle = func.limit(round(TKP * Error_Angle + TKI * Integral_Angle + TKD * Derivative_Angle) * Correction_Strength * Angle_Output, -450, 450)
-            Angle_Output = 0 if abs(Error_Angle) < 1 else 1
+            Angle_Output = 1 if abs(Parallel_Tracker_Position - Last_Position_Paralled_Tracker) * 0.04 >= Distance_Before_Turn or not abs(Error_Angle) < 1 else 0
+            Motor_Power_Angle = func.limit(round(TKP * Error_Angle + TKI * Integral_Angle + TKD * Derivative_Angle) * Correction_Strength * Angle_Output * Speed_Scale, -450, 450)
             Right_Motor_Power = Motor_Power_Drive - Motor_Power_Angle
             Left_Motor_Power = Motor_Power_Drive + Motor_Power_Angle
             dt.spin(FORWARD, FORWARD, Left_Motor_Power, Right_Motor_Power, RPM)
         dt.stop()
         
     # PID Function Drive To #
-    def drive_to_coordinate(self, X, Y, Heading = None) -> None:
-        ...
+    def drive_to_coordinate(self, X, Y) -> None:
+        Distance = math.dist([Current_X_Position, Current_Y_Position], [X, Y])
+        Angle = math.degrees(math.atan2(Y - Current_Y_Position, X - Current_X_Position)) - inertial.rotation()
+        dt.turn(Angle)
+        dt.forward(Distance)
     
         
 class Miscellaneous_Functions:

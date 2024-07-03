@@ -1,5 +1,12 @@
 # Changelog - 2602K KryptoKnights
 
+## Version 1.143
+#### General
+#### Stable Release
+- Added 'Drive to Coordinate' function for easier control
+- Fixed no speed scale multiplier for Turn and Forward
+- Removed redundant checks
+
 ## Version 1.132
 #### General
 #### Stable Release
@@ -16,23 +23,23 @@
 ## Version 1.110
 #### General
 #### Stable Release
-- Fixed Failed Calibration to now Default to Tracking Wheels
-- Bug Fixes
+- Fixed failed calibration to now default to tracking wheels
+- Bug fixes
 
 ## Version 1.100
 #### General
 #### Stable Release
-- Made Code More Readable and Comprehensible for Viewers
-- Bug Fixes
+- Made code readable and comprehensible for viewers
+- Bug fixes
 
 ## Version 1.012
-#### Electronics
+#### Electronics.
 #### Stable Release
-- Removed Tracking Wheels Default if Inertial Fails to Calibrate (Will be Fixed in a Later Version)
-- Bug Fixes
+- Removed tracking wheels default if inertial fails to calibrate (will be fixed in a later version)
+- Bug fixes
 
 ## Version 1.000
 #### General
 #### Not Stable Release
-- Release of Program
+- Release of program
 - Prone to bugs, which will be fixed in later versions
